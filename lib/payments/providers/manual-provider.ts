@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+﻿import crypto from 'crypto'
 import type {
   PaymentProvider,
   CreateCheckoutParams,
@@ -26,9 +26,13 @@ export class ManualPaymentProvider implements PaymentProvider {
     // Un vrai fournisseur ferait ici un appel API pour créer une session de
     // paiement et retournerait son URL d'hébergement. Ici, on redirige vers
     // une page interne qui simule la confirmation (utile en dev/démo).
-    const redirectUrl = `${params.successUrl}?provider=manual&txn=${providerTransactionId}`
+    // On utilise l'objet URL pour ajouter les paramètres correctement, que
+    // successUrl contienne déjà un "?" ou non (évite les doubles "?").
+    const redirectUrl = new URL(params.successUrl)
+    redirectUrl.searchParams.set('provider', 'manual')
+    redirectUrl.searchParams.set('txn', providerTransactionId)
 
-    return { redirectUrl, providerTransactionId }
+    return { redirectUrl: redirectUrl.toString(), providerTransactionId }
   }
 
   verifyWebhookSignature(rawBody: string, headers: Headers): boolean {
