@@ -1,8 +1,10 @@
-import type { PaymentProvider } from '@/lib/payments/provider'
+﻿import type { PaymentProvider } from '@/lib/payments/provider'
 import { ManualPaymentProvider } from '@/lib/payments/providers/manual-provider'
+import { PawaPayProvider } from '@/lib/payments/providers/pawapay-provider'
 
 const providers: Record<string, PaymentProvider> = {
   manual: new ManualPaymentProvider(),
+  pawapay: new PawaPayProvider(),
   // mtn_momo: new MtnMomoProvider(),
   // orange_money: new OrangeMoneyProvider(),
   // stripe: new StripeProvider(),

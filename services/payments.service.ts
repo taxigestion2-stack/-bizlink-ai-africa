@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+﻿import type { SupabaseClient } from '@supabase/supabase-js'
 import { getPaymentProvider } from '@/lib/payments/registry'
 import { PLAN_DETAILS, AFFILIATE_COMMISSION_RATE, type PlanKey } from '@/lib/plans'
 
@@ -13,7 +13,8 @@ export async function initiateSubscriptionCheckout(
   organizationId: string,
   plan: PlanKey,
   providerKey: string,
-  urls: { successUrl: string; cancelUrl: string }
+  urls: { successUrl: string; cancelUrl: string },
+  mobileMoneyDetails?: { phoneNumber: string; mobileProvider: string; currency: string }
 ) {
   if (plan === 'free') {
     throw new Error('Le plan gratuit ne nécessite pas de paiement.')
@@ -28,6 +29,7 @@ export async function initiateSubscriptionCheckout(
   if (subError || !subscription) throw new Error('Abonnement introuvable pour cette organisation.')
 
   const amount = PLAN_DETAILS[plan].price
+  const currency = mobileMoneyDetails?.currency ?? 'USD'
 
   const { data: transaction, error: txError } = await serviceClient
     .from('payment_transactions')
@@ -35,7 +37,7 @@ export async function initiateSubscriptionCheckout(
       organization_id: organizationId,
       subscription_id: subscription.id,
       amount,
-      currency: 'USD',
+      currency,
       status: 'pending',
       provider: providerKey,
       metadata: { plan },
@@ -50,11 +52,17 @@ export async function initiateSubscriptionCheckout(
     organizationId,
     subscriptionId: subscription.id,
     amount,
-    currency: 'USD',
+    currency,
     plan: plan as 'starter' | 'pro',
     successUrl: urls.successUrl,
     cancelUrl: urls.cancelUrl,
-    metadata: { plan, transaction_id: transaction.id },
+    metadata: {
+      plan,
+      transaction_id: transaction.id,
+      ...(mobileMoneyDetails
+        ? { phoneNumber: mobileMoneyDetails.phoneNumber, mobileProvider: mobileMoneyDetails.mobileProvider }
+        : {}),
+    },
   })
 
   await serviceClient
