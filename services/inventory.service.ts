@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+﻿import type { SupabaseClient } from '@supabase/supabase-js'
 
 export async function listInventoryReports(supabase: SupabaseClient, organizationId: string) {
   const { data, error } = await supabase
@@ -14,15 +14,16 @@ export async function listInventoryReports(supabase: SupabaseClient, organizatio
 /**
  * Génère (ou régénère) le rapport d'inventaire d'une période donnée.
  *
- * Méthode de calcul (MVP, sans comptage physique) :
+ * Méthode de calcul :
  *  - closing_stock_value = valeur du stock actuel au coût d'achat
  *  - purchases_value     = somme des achats de la période (coût)
  *  - sales_value          = somme des ventes de la période (chiffre d'affaires)
  *  - cogs (coût des ventes) = quantité vendue x coût unitaire, sur la période
  *  - opening_stock_value  = closing - purchases + cogs (reconstruction comptable)
- *  - losses / discrepancies = 0 par défaut : nécessitent un comptage physique
- *    manuel (fonctionnalité future "ajustement d'inventaire"), volontairement
- *    hors scope de ce livrable.
+ *  - losses  = somme des pertes constatées par les comptages physiques
+ *    (stock_counts) réalisés pendant la période — voir 008_stock_counts.sql
+ *  - discrepancies = laissé à 0 : réservé à un futur rapprochement plus fin
+ *    (ex: écarts non expliqués par un comptage volontaire).
  */
 export async function generateInventoryReport(
   supabase: SupabaseClient,
@@ -55,6 +56,15 @@ export async function generateInventoryReport(
 
   if (productError) throw new Error(productError.message)
 
+  const { data: stockCountRows, error: stockCountError } = await supabase
+    .from('stock_counts')
+    .select('total_loss_value')
+    .eq('organization_id', organizationId)
+    .gte('completed_at', periodStart)
+    .lte('completed_at', `${periodEnd} 23:59:59`)
+
+  if (stockCountError) throw new Error(stockCountError.message)
+
   const purchasesValue = (purchaseRows ?? []).reduce((sum, r: any) => sum + Number(r.subtotal), 0)
   const salesValue = (saleRows ?? []).reduce((sum, r: any) => sum + Number(r.subtotal), 0)
   const cogs = (saleRows ?? []).reduce(
@@ -66,6 +76,7 @@ export async function generateInventoryReport(
     0
   )
   const openingStockValue = closingStockValue - purchasesValue + cogs
+  const losses = (stockCountRows ?? []).reduce((sum, r: any) => sum + Number(r.total_loss_value), 0)
 
   const { data, error } = await supabase
     .from('inventory_reports')
@@ -78,7 +89,7 @@ export async function generateInventoryReport(
         purchases_value: purchasesValue,
         sales_value: salesValue,
         closing_stock_value: closingStockValue,
-        losses: 0,
+        losses,
         discrepancies: 0,
       },
       { onConflict: 'organization_id,period_start,period_end' }
