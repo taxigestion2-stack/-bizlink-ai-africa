@@ -1,9 +1,10 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { requireProfile } from '@/lib/auth/require-profile'
 import { listExpenses } from '@/services/expenses.service'
 import { ExpenseTable } from '@/components/expenses/expense-table'
+import { ExportExpensesCsvButton } from '@/components/expenses/export-expenses-csv-button'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = { title: 'Dépenses — BizLink AI Africa' }
@@ -30,9 +31,12 @@ export default async function ExpensesPage({
             Total du mois : <span className="font-medium text-foreground">{total.toFixed(2)}</span>
           </p>
         </div>
-        <Button asChild>
-          <Link href="/expenses/new">Ajouter une dépense</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportExpensesCsvButton expenses={expenses} />
+          <Button asChild>
+            <Link href="/expenses/new">Ajouter une dépense</Link>
+          </Button>
+        </div>
       </div>
 
       <form className="flex items-center gap-2">

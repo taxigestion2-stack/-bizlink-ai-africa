@@ -1,9 +1,10 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { requireProfile } from '@/lib/auth/require-profile'
 import { listSales } from '@/services/sales.service'
 import { SaleTable } from '@/components/sales/sale-table'
+import { ExportSalesCsvButton } from '@/components/sales/export-sales-csv-button'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = { title: 'Ventes — BizLink AI Africa' }
@@ -20,9 +21,12 @@ export default async function SalesPage() {
           <h1 className="text-2xl font-semibold">Ventes</h1>
           <p className="text-sm text-muted-foreground">Historique de vos ventes</p>
         </div>
-        <Button asChild>
-          <Link href="/sales/new">Nouvelle vente</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportSalesCsvButton sales={sales as any} />
+          <Button asChild>
+            <Link href="/sales/new">Nouvelle vente</Link>
+          </Button>
+        </div>
       </div>
 
       <SaleTable sales={sales as any} />
