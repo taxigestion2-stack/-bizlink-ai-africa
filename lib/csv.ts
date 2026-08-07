@@ -1,4 +1,4 @@
-﻿function escapeCsvValue(value) {
+﻿function escapeCsvValue(value: unknown): string {
   const str = String(value ?? '')
   if (/[",\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`
@@ -6,13 +6,13 @@
   return str
 }
 
-export function arrayToCsv(headers, rows) {
+export function arrayToCsv(headers: string[], rows: (string | number)[][]): string {
   const bom = '\uFEFF'
   const lines = [headers, ...rows].map((row) => row.map(escapeCsvValue).join(','))
   return bom + lines.join('\n')
 }
 
-export function downloadCsv(filename, csvContent) {
+export function downloadCsv(filename: string, csvContent: string) {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

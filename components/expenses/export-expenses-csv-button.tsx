@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/ui/button'
 import { arrayToCsv, downloadCsv } from '@/lib/csv'
+import type { Expense } from '@/types/database.types'
 
-export function ExportExpensesCsvButton({ expenses }) {
+export function ExportExpensesCsvButton({ expenses }: { expenses: Expense[] }) {
   const handleExport = () => {
     const csv = arrayToCsv(
       ['Date', 'Catégorie', 'Description', 'Montant'],

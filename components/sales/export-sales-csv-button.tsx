@@ -3,13 +3,22 @@
 import { Button } from '@/components/ui/button'
 import { arrayToCsv, downloadCsv } from '@/lib/csv'
 
-const STATUS_LABEL = {
+type SaleRow = {
+  sale_date: string
+  total_amount: number
+  profit: number
+  payment_status: 'paid' | 'partial' | 'unpaid'
+  customer: { name: string } | null
+  items: { id: string }[]
+}
+
+const STATUS_LABEL: Record<SaleRow['payment_status'], string> = {
   paid: 'Payé',
   partial: 'Partiel',
   unpaid: 'Non payé',
 }
 
-export function ExportSalesCsvButton({ sales }) {
+export function ExportSalesCsvButton({ sales }: { sales: SaleRow[] }) {
   const handleExport = () => {
     const csv = arrayToCsv(
       ['Date', 'Client', 'Nombre de produits', 'Statut de paiement', 'Bénéfice', 'Total'],
