@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/expenses', label: 'Dépenses' },
   { href: '/debts', label: 'Dettes clients' },
   { href: '/reports', label: 'Rapports' },
+  { href: '/savings', label: 'Épargne' },
   { href: '/team', label: 'Équipe' },        
   { href: '/ai', label: 'Assistant IA' },
   { href: '/subscriptions', label: 'Abonnement' },
