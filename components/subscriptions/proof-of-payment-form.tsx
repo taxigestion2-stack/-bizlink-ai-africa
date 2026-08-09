@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+type PayablePlan = Extract<PlanKey, 'starter' | 'pro'>
+
 export function ProofOfPaymentForm({ organizationId }: { organizationId: string }) {
-  const [plan, setPlan] = useState<PlanKey>('starter')
+  const [plan, setPlan] = useState<PayablePlan>('starter')
   const [method, setMethod] = useState<'mobile_money' | 'bank_transfer'>('mobile_money')
   const [transactionId, setTransactionId] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -88,7 +90,7 @@ export function ProofOfPaymentForm({ organizationId }: { organizationId: string 
           id="plan"
           className="w-full rounded-md border px-3 py-2 text-sm"
           value={plan}
-          onChange={(e) => setPlan(e.target.value as PlanKey)}
+          onChange={(e) => setPlan(e.target.value as PayablePlan)}
         >
           <option value="starter">Starter — {PLAN_DETAILS.starter.price}$/mois</option>
           <option value="pro">Pro — {PLAN_DETAILS.pro.price}$/mois</option>
@@ -119,7 +121,6 @@ export function ProofOfPaymentForm({ organizationId }: { organizationId: string 
         </div>
       </div>
 
-      {/* Coordonnées officielles */}
       <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-2">
         <p className="font-medium">Coordonnées de paiement</p>
         {method === 'mobile_money' ? (
