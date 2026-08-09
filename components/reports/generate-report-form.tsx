@@ -1,5 +1,4 @@
-@'
-'use client'
+﻿'use client'
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
@@ -103,4 +102,3 @@ export function GenerateReportForm() {
     </div>
   )
 }
-'@ | Set-Content -Path "C:\Users\hp\Desktop\bizlink-ai-africa\components\reports\generate-report-form.tsx" -Encoding UTF8

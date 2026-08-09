@@ -1,5 +1,4 @@
-@'
-type ReportRow = {
+﻿type ReportRow = {
   id: string
   period_start: string
   period_end: string
@@ -82,4 +81,3 @@ export function InventoryReportTable({ reports }: { reports: ReportRow[] }) {
     </div>
   )
 }
-'@ | Set-Content -Path "C:\Users\hp\Desktop\bizlink-ai-africa\components\reports\inventory-report-table.tsx" -Encoding UTF8
