@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -33,7 +33,7 @@ export function Sidebar({ organizationName }: { organizationName: string }) {
         </p>
         <p className="text-xs text-muted-foreground truncate mt-0.5">{organizationName}</p>
       </div>
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="sidebar-nav flex-1 space-y-1 overflow-y-auto p-3">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
           return (
