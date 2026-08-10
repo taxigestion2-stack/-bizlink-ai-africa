@@ -1,7 +1,7 @@
-'use server'
+﻿'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import { requireProfile } from '@/lib/auth/require-profile'
 import { requirePlatformAdmin } from '@/lib/platform-admin'
 import {
@@ -26,10 +26,10 @@ export async function submitPaymentProofAction(input: SubmitPaymentProofInput): 
     return { error: "Seul un administrateur peut soumettre un paiement." }
   }
 
-  const supabase = await createClient()
+  const serviceClient = createServiceRoleClient()
 
   try {
-    const transaction = await paymentProofService.submitPaymentProof(supabase, organization.id, parsed.data)
+    const transaction = await paymentProofService.submitPaymentProof(serviceClient, organization.id, parsed.data)
     revalidatePath('/subscriptions')
     return { error: null, referenceNumber: transaction.reference_number }
   } catch (e) {
