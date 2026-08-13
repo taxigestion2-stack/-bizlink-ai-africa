@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 import { revalidatePath } from 'next/cache'
 import { createServiceRoleClient } from '@/lib/supabase/server'
@@ -26,6 +26,9 @@ export async function submitPaymentProofAction(input: SubmitPaymentProofInput): 
     return { error: "Seul un administrateur peut soumettre un paiement." }
   }
 
+  // payment_transactions n'est modifiable que via service_role (voir
+  // 002_rls_policies.sql / SECURITY.md) — le rôle "admin" a déjà été vérifié
+  // ci-dessus, donc cet usage de service_role reste borné à cette action.
   const serviceClient = createServiceRoleClient()
 
   try {

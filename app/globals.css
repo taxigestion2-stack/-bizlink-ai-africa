@@ -1,18 +1,21 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    /* Fond bleu marine très foncé — l'app est pensée dark-first */
     --background: 222 47% 6%;
     --foreground: 210 30% 96%;
 
+    /* Cartes légèrement plus claires que le fond pour créer de la profondeur */
     --card: 222 39% 10%;
     --card-foreground: 210 30% 96%;
 
     --muted: 222 30% 14%;
     --muted-foreground: 215 18% 68%;
 
+    /* Accent doré/ambre — commerce, marché, prospérité */
     --primary: 38 92% 58%;
     --primary-foreground: 222 47% 8%;
 
@@ -69,3 +72,4 @@
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--primary) / 0.8);
 }
+

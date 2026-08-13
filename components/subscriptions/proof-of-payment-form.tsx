@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -37,8 +37,8 @@ export function ProofOfPaymentForm({ organizationId }: { organizationId: string 
       const supabase = createClient()
       const safeName = file.name
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9.\-]/g, '_')
+        .replace(/[\u0300-\u036f]/g, '') // retire les accents (é → e)
+        .replace(/[^a-zA-Z0-9.\-]/g, '_') // remplace tout le reste (apostrophes, espaces...) par _
       const path = `${organizationId}/${Date.now()}-${safeName}`
 
       const { error: uploadError } = await supabase.storage.from('payment-proofs').upload(path, file)
@@ -125,6 +125,7 @@ export function ProofOfPaymentForm({ organizationId }: { organizationId: string 
         </div>
       </div>
 
+      {/* Coordonnées officielles */}
       <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-2">
         <p className="font-medium">Coordonnées de paiement</p>
         {method === 'mobile_money' ? (

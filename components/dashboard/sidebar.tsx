@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -14,6 +14,8 @@ const NAV_ITEMS = [
   { href: '/expenses', label: 'Dépenses' },
   { href: '/debts', label: 'Dettes clients' },
   { href: '/reports', label: 'Rapports' },
+  { href: '/analytics', label: 'Statistiques' },
+  { href: '/accounting', label: 'Comptabilité' },
   { href: '/savings', label: 'Épargne' },
   { href: '/team', label: 'Équipe' },
   { href: '/ai', label: 'Assistant IA' },
