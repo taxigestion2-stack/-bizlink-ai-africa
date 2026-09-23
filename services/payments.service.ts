@@ -26,7 +26,9 @@ export async function initiateSubscriptionCheckout(
     .eq('organization_id', organizationId)
     .single()
 
-  if (subError || !subscription) throw new Error('Abonnement introuvable pour cette organisation.')
+  if (subError || !subscription) {
+    throw new Error('Abonnement introuvable pour cette organisation.')
+  }
 
   const amount = PLAN_DETAILS[plan].price
   const currency = mobileMoneyDetails?.currency ?? 'USD'
@@ -45,9 +47,12 @@ export async function initiateSubscriptionCheckout(
     .select()
     .single()
 
-  if (txError || !transaction) throw new Error("Impossible de créer la transaction de paiement.")
+  if (txError || !transaction) {
+    throw new Error('Impossible de créer la transaction de paiement.')
+  }
 
   const provider = getPaymentProvider(providerKey)
+
   const checkout = await provider.createCheckout({
     organizationId,
     subscriptionId: subscription.id,
@@ -60,7 +65,10 @@ export async function initiateSubscriptionCheckout(
       plan,
       transaction_id: transaction.id,
       ...(mobileMoneyDetails
-        ? { phoneNumber: mobileMoneyDetails.phoneNumber, mobileProvider: mobileMoneyDetails.mobileProvider }
+        ? {
+            phoneNumber: mobileMoneyDetails.phoneNumber,
+            mobileProvider: mobileMoneyDetails.mobileProvider,
+          }
         : {}),
     },
   })
@@ -90,6 +98,7 @@ export async function activateSubscriptionForTransaction(
   const plan = (transaction.metadata?.plan ?? 'starter') as PlanKey
   const organizationId = transaction.subscription.organization_id
   const periodEnd = new Date()
+
   periodEnd.setDate(periodEnd.getDate() + 30)
 
   await serviceClient
@@ -132,7 +141,8 @@ export async function activateSubscriptionForTransaction(
       organization_id: pendingReferral.referrer_organization_id,
       type: 'referral_reward',
       title: 'Récompense de parrainage débloquée',
-      message: 'Un de vos filleuls a souscrit à un abonnement payant. Votre récompense est activée.',
+      message:
+        'Un de vos filleuls a souscrit à un abonnement payant. Votre récompense est activée.',
       metadata: { referral_id: pendingReferral.id },
     })
   }
@@ -146,7 +156,9 @@ export async function activateSubscriptionForTransaction(
     .single()
 
   if (org?.referred_by_affiliate_id) {
-    const commissionAmount = Number((transaction.amount * AFFILIATE_COMMISSION_RATE).toFixed(2))
+    const commissionAmount = Number(
+      (transaction.amount * AFFILIATE_COMMISSION_RATE).toFixed(2)
+    )
 
     await serviceClient.from('affiliate_commissions').insert({
       affiliate_account_id: org.referred_by_affiliate_id,
@@ -164,7 +176,9 @@ export async function activateSubscriptionForTransaction(
     if (account) {
       await serviceClient
         .from('affiliate_accounts')
-        .update({ total_earnings: Number(account.total_earnings) + commissionAmount })
+        .update({
+          total_earnings: Number(account.total_earnings) + commissionAmount,
+        })
         .eq('id', org.referred_by_affiliate_id)
 
       const { data: affiliateProfile } = await serviceClient
@@ -180,7 +194,9 @@ export async function activateSubscriptionForTransaction(
           type: 'commission',
           title: "Nouvelle commission d'affiliation",
           message: `Vous avez gagné une commission de ${commissionAmount.toFixed(2)}.`,
-          metadata: { affiliate_account_id: org.referred_by_affiliate_id },
+          metadata: {
+            affiliate_account_id: org.referred_by_affiliate_id,
+          },
         })
       }
     }
@@ -190,16 +206,30 @@ export async function activateSubscriptionForTransaction(
 /**
  * Traite un événement de webhook entrant : met à jour la transaction, active
  * l'abonnement et l'organisation si le paiement est confirmé.
+ *
+ * Le contexte HTTP est transmis au fournisseur afin que les fournisseurs
+ * utilisant une signature liée à l'URL/méthode HTTP (ex. PawaPay) puissent
+ * vérifier correctement l'authenticité du webhook.
  */
 export async function handlePaymentWebhookEvent(
   serviceClient: SupabaseClient,
   providerKey: string,
   rawBody: string,
-  headers: Headers
+  headers: Headers,
+  context: {
+    requestUrl: string
+    requestMethod: string
+  }
 ) {
   const provider = getPaymentProvider(providerKey)
 
-  if (!provider.verifyWebhookSignature(rawBody, headers)) {
+  const signatureIsValid = await provider.verifyWebhookSignature(
+    rawBody,
+    headers,
+    context
+  )
+
+  if (!signatureIsValid) {
     throw new Error('Signature de webhook invalide.')
   }
 
@@ -220,9 +250,13 @@ export async function handlePaymentWebhookEvent(
     'payment.failed': 'failed',
     'payment.refunded': 'refunded',
   }
+
   const newStatus = statusMap[event.type]
 
-  await serviceClient.from('payment_transactions').update({ status: newStatus }).eq('id', transaction.id)
+  await serviceClient
+    .from('payment_transactions')
+    .update({ status: newStatus })
+    .eq('id', transaction.id)
 
   if (newStatus === 'paid') {
     await activateSubscriptionForTransaction(serviceClient, transaction)

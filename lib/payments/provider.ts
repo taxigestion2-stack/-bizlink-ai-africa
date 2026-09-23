@@ -1,13 +1,8 @@
 /**
- * Architecture "Paiement Pro" — contrat générique qu'un fournisseur de
- * paiement doit respecter pour être branché sur BizLink AI Africa, sans
- * jamais coder en dur un fournisseur spécifique dans la logique métier.
+ * Contrat générique des fournisseurs de paiement BizLink AI Africa.
  *
- * Pour ajouter un nouveau fournisseur (Mobile Money, Stripe, etc.) :
- *   1. Créer lib/payments/providers/<nom>.ts implémentant PaymentProvider
- *   2. L'enregistrer dans lib/payments/registry.ts
- *   3. Ajouter ses variables d'environnement (clé API, secret webhook...)
- * Aucune autre partie du code n'a besoin de changer.
+ * Chaque fournisseur implémente ce contrat afin que la logique métier
+ * reste indépendante du fournisseur de paiement utilisé.
  */
 
 export interface CreateCheckoutParams {
@@ -26,7 +21,10 @@ export interface CreateCheckoutResult {
   providerTransactionId: string
 }
 
-export type WebhookEventType = 'payment.succeeded' | 'payment.failed' | 'payment.refunded'
+export type WebhookEventType =
+  | 'payment.succeeded'
+  | 'payment.failed'
+  | 'payment.refunded'
 
 export interface PaymentWebhookEvent {
   type: WebhookEventType
@@ -36,17 +34,43 @@ export interface PaymentWebhookEvent {
   metadata?: Record<string, string>
 }
 
+/**
+ * Contexte HTTP nécessaire pour vérifier les signatures de webhook
+ * qui signent des composants de la requête HTTP.
+ *
+ * PawaPay Signed Callbacks utilise notamment des composants liés
+ * à la méthode HTTP, à l'autorité et au chemin de la requête.
+ */
+export interface WebhookVerificationContext {
+  requestUrl: string
+  requestMethod: string
+}
+
 export interface PaymentProvider {
-  /** Identifiant unique du fournisseur, stocké dans payment_transactions.provider */
+  /** Identifiant unique stocké dans payment_transactions.provider. */
   key: string
+
+  /** Nom lisible du fournisseur. */
   displayName: string
 
-  /** Initie un paiement et retourne l'URL de redirection vers le fournisseur */
-  createCheckout(params: CreateCheckoutParams): Promise<CreateCheckoutResult>
+  /** Initialise un paiement auprès du fournisseur. */
+  createCheckout(
+    params: CreateCheckoutParams
+  ): Promise<CreateCheckoutResult>
 
-  /** Vérifie l'authenticité d'un webhook (signature HMAC, etc.) */
-  verifyWebhookSignature(rawBody: string, headers: Headers): boolean
+  /**
+   * Vérifie l'authenticité et l'intégrité du webhook.
+   *
+   * Le contexte HTTP complet est fourni afin de permettre aux fournisseurs
+   * utilisant une signature HTTP structurée, comme RFC 9421, de vérifier
+   * correctement les composants signés de la requête.
+   */
+  verifyWebhookSignature(
+    rawBody: string,
+    headers: Headers,
+    context: WebhookVerificationContext
+  ): Promise<boolean>
 
-  /** Transforme la charge utile brute du webhook en événement normalisé */
+  /** Transforme le webhook brut en événement normalisé. */
   parseWebhookEvent(rawBody: string): PaymentWebhookEvent
 }

@@ -4,6 +4,7 @@ import type {
   CreateCheckoutParams,
   CreateCheckoutResult,
   PaymentWebhookEvent,
+  WebhookVerificationContext,
 } from '@/lib/payments/provider'
 
 /**
@@ -33,16 +34,32 @@ export class ManualPaymentProvider implements PaymentProvider {
     return { redirectUrl: redirectUrl.toString(), providerTransactionId }
   }
 
-  verifyWebhookSignature(rawBody: string, headers: Headers): boolean {
+  async verifyWebhookSignature(
+    rawBody: string,
+    headers: Headers,
+    _context: WebhookVerificationContext
+  ): Promise<boolean> {
     const signature = headers.get('x-signature')
     if (!signature) return false
 
-    const expected = crypto.createHmac('sha256', this.secret).update(rawBody).digest('hex')
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+    const expected = crypto
+      .createHmac('sha256', this.secret)
+      .update(rawBody)
+      .digest('hex')
+
+    if (signature.length !== expected.length) {
+      return false
+    }
+
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, 'utf8'),
+      Buffer.from(expected, 'utf8')
+    )
   }
 
   parseWebhookEvent(rawBody: string): PaymentWebhookEvent {
     const payload = JSON.parse(rawBody)
+
     return {
       type: payload.type,
       providerTransactionId: payload.transaction_id,
