@@ -17,9 +17,14 @@ import {
 export type ActionResult = { error: string | null }
 
 /**
- * Inscription. La crÃ©ation de `organizations` + `profiles` + `subscriptions`
- * est dÃ©lÃ©guÃ©e au trigger SQL `handle_new_user` (voir 003_triggers_functions.sql) :
- * on passe simplement les mÃ©tadonnÃ©es nÃ©cessaires dans `options.data`.
+ * Inscription.
+ *
+ * La création de `organizations` + `profiles` + `subscriptions`
+ * est déléguée au trigger SQL `handle_new_user`
+ * (voir 003_triggers_functions.sql).
+ *
+ * On passe simplement les métadonnées nécessaires
+ * dans `options.data`.
  */
 export async function signUp(
   input: RegisterInput,
@@ -27,8 +32,11 @@ export async function signUp(
   affiliateCode?: string
 ): Promise<ActionResult> {
   const parsed = registerSchema.safeParse(input)
+
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'DonnÃ©es invalides' }
+    return {
+      error: parsed.error.issues[0]?.message ?? 'Données invalides',
+    }
   }
 
   const supabase = await createClient()
@@ -41,7 +49,7 @@ export async function signUp(
       data: {
         full_name: fullName,
         organization_name: organizationName,
-        // CaptÃ©s par le trigger SQL handle_new_user (006_affiliate_attribution.sql)
+        // Captés par le trigger SQL handle_new_user.
         referral_code: referralCode || undefined,
         affiliate_code: affiliateCode || undefined,
       },
@@ -50,6 +58,7 @@ export async function signUp(
   })
 
   if (error) {
+    console.error('signUp error:', error.message)
     return { error: translateAuthError(error.message) }
   }
 
@@ -58,11 +67,15 @@ export async function signUp(
 
 export async function signIn(input: LoginInput): Promise<ActionResult> {
   const parsed = loginSchema.safeParse(input)
+
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'DonnÃ©es invalides' }
+    return {
+      error: parsed.error.issues[0]?.message ?? 'Données invalides',
+    }
   }
 
-  // 5 tentatives / 5 minutes par e-mail — anti brute-force sur les mots de passe
+  // 5 tentatives / 5 minutes par e-mail —
+  // anti brute-force sur les mots de passe.
   const rateLimit = await checkPersistentRateLimit(
     `login:${parsed.data.email.toLowerCase()}`,
     5,
@@ -70,13 +83,16 @@ export async function signIn(input: LoginInput): Promise<ActionResult> {
   )
 
   if (!rateLimit.allowed) {
-    return { error: 'Trop de tentatives. Merci de réessayer dans quelques minutes.' }
+    return {
+      error: 'Trop de tentatives. Merci de réessayer dans quelques minutes.',
+    }
   }
 
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
 
   if (error) {
+    console.error('signIn error:', error.message)
     return { error: translateAuthError(error.message) }
   }
 
@@ -91,6 +107,7 @@ export async function signOut(): Promise<void> {
 
 export async function signInWithGoogle(): Promise<void> {
   const supabase = await createClient()
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -105,18 +122,28 @@ export async function signInWithGoogle(): Promise<void> {
   redirect(data.url)
 }
 
-export async function requestPasswordReset(input: ForgotPasswordInput): Promise<ActionResult> {
+export async function requestPasswordReset(
+  input: ForgotPasswordInput
+): Promise<ActionResult> {
   const parsed = forgotPasswordSchema.safeParse(input)
+
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'DonnÃ©es invalides' }
+    return {
+      error: parsed.error.issues[0]?.message ?? 'Données invalides',
+    }
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
-  })
 
-  // On ne rÃ©vÃ¨le jamais si l'e-mail existe ou non (anti Ã©numÃ©ration de comptes)
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    parsed.data.email,
+    {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
+    }
+  )
+
+  // On ne révèle jamais si l'e-mail existe ou non
+  // afin d'éviter l'énumération de comptes.
   if (error) {
     console.error('resetPasswordForEmail error:', error.message)
   }
@@ -124,16 +151,24 @@ export async function requestPasswordReset(input: ForgotPasswordInput): Promise<
   return { error: null }
 }
 
-export async function resetPassword(input: ResetPasswordInput): Promise<ActionResult> {
+export async function resetPassword(
+  input: ResetPasswordInput
+): Promise<ActionResult> {
   const parsed = resetPasswordSchema.safeParse(input)
+
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'DonnÃ©es invalides' }
+    return {
+      error: parsed.error.issues[0]?.message ?? 'Données invalides',
+    }
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.updateUser({ password: parsed.data.password })
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  })
 
   if (error) {
+    console.error('resetPassword error:', error.message)
     return { error: translateAuthError(error.message) }
   }
 
@@ -141,11 +176,46 @@ export async function resetPassword(input: ResetPasswordInput): Promise<ActionRe
 }
 
 function translateAuthError(message: string): string {
+  const normalized = message.toLowerCase()
+
   const map: Record<string, string> = {
-    'Invalid login credentials': 'E-mail ou mot de passe incorrect.',
-    'User already registered': 'Un compte existe dÃ©jÃ  avec cet e-mail.',
-    'Email not confirmed': 'Merci de confirmer votre e-mail avant de vous connecter.',
-    'Password should be at least 6 characters': 'Le mot de passe est trop court.',
+    'invalid login credentials':
+      'E-mail ou mot de passe incorrect.',
+    'user already registered':
+      'Un compte existe déjà avec cet e-mail.',
+    'email not confirmed':
+      'Merci de confirmer votre e-mail avant de vous connecter.',
+    'password should be at least 6 characters':
+      'Le mot de passe est trop court.',
   }
-  return map[message] ?? "Une erreur est survenue. Merci de rÃ©essayer."
+
+  if (map[message]) {
+    return map[message]
+  }
+
+  if (
+    normalized.includes('rate limit') ||
+    normalized.includes('too many requests') ||
+    normalized.includes('too many attempts')
+  ) {
+    return 'Trop de tentatives. Merci de patienter quelques minutes avant de réessayer.'
+  }
+
+  if (
+    normalized.includes('email') &&
+    normalized.includes('invalid')
+  ) {
+    return 'Adresse e-mail invalide.'
+  }
+
+  if (
+    normalized.includes('password') &&
+    normalized.includes('weak')
+  ) {
+    return 'Le mot de passe est trop faible.'
+  }
+
+  console.error('Unhandled Supabase auth error:', message)
+
+  return 'Une erreur est survenue. Merci de réessayer.'
 }
